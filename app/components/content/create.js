@@ -47,9 +47,9 @@ const Create = ({ p2p }) => {
             parents: [parent].filter(Boolean)
           })
 
-          const dir = `${p2p.baseDir}/${encode(url)}`
-          for (const [source, destination] of Object.entries(files)) {
-            await fs.copyFile(source, `${dir}/${destination}`)
+          for (const [source] of Object.entries(files)) {
+            // await fs.copyFile(source, `${dir}/${destination}`)
+            await p2p.addFiles(url, source)
           }
           if (main) {
             ;({
