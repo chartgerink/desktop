@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@hypergraph-xyz/wikidata-identifiers": "^1.2.0",
-    "@p2pcommons/sdk-js": "github:p2pcommons/sdk-js#6fbc85937063257e8d70e81f7f303b3f2dfe2c07",
+    "@p2pcommons/sdk-js": "github:p2pcommons/sdk-js#dpaez/add-resume-download-start-remake",
     "adm-zip": "^0.4.16",
     "chmodr": "^1.0.2",
     "dat-encoding": "^5.0.1",
