@@ -227,10 +227,10 @@ const EditForm = ({
         )}
         <Label htmlFor='subtype'>Content type</Label>
         <NewSelect
-          className="basic-single"
-          classNamePrefix="select"
+          className='basic-single'
+          classNamePrefix='select'
           defaultValue={options[0]}
-          name="subtype"
+          name='subtype'
           options={options}
         />
         {/* <Select name='subtype' defaultValue={subtype}>
