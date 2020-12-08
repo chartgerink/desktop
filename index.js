@@ -252,7 +252,7 @@ const main = async () => {
       buttons: ['Install'],
       defaultId: 0,
       title: 'Update Hypergraph',
-      message: `Version`,
+      message: 'New update',
       detail: info.releaseNotes
     }
 
