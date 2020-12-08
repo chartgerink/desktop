@@ -245,6 +245,7 @@ const main = async () => {
 
   if (app.isPackaged) autoUpdater.checkForUpdates()
 
+  console.log('testing the new changelog info')
   autoUpdater.addListener('update-downloaded', info => {
     console.log(info)
     const options = {
@@ -253,7 +254,7 @@ const main = async () => {
       defaultId: 0,
       title: 'Update Hypergraph',
       message: 'New update',
-      detail: info.releaseNotes
+      detail: 'Testing changelog'
     }
 
     dialog.showMessageBox(null, options, response => {
