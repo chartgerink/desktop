@@ -229,7 +229,36 @@ const main = async () => {
   await app.whenReady()
   mainWindow = await createMainWindow()
   app.setAsDefaultProtocolClient('hypergraph')
-  if (app.isPackaged) autoUpdater.checkForUpdatesAndNotify()
+
+  const options = {
+    type: 'question',
+    buttons: ['Install'],
+    defaultId: 0,
+    title: 'Update Hypergraph',
+    message: 'null',
+    detail: null
+  }
+
+  dialog.showMessageBox(null, options, response => {
+    console.log(response)
+  })
+
+  if (app.isPackaged) autoUpdater.checkForUpdates()
+
+  autoUpdater.addListener('update-downloaded', info => {
+    const options = {
+      type: 'question',
+      buttons: ['Install'],
+      defaultId: 0,
+      title: 'Update Hypergraph',
+      message: `Version ${info.releaseName}`,
+      detail: info.releaseNotes
+    }
+
+    dialog.showMessageBox(null, options, response => {
+      if (response === 0) autoUpdater.quitAndInstall()
+    })
+  })
 }
 
 main()
