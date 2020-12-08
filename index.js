@@ -246,12 +246,13 @@ const main = async () => {
   if (app.isPackaged) autoUpdater.checkForUpdates()
 
   autoUpdater.addListener('update-downloaded', info => {
+    console.log(info)
     const options = {
       type: 'question',
       buttons: ['Install'],
       defaultId: 0,
       title: 'Update Hypergraph',
-      message: `Version ${info.releaseName}`,
+      message: `Version`,
       detail: info.releaseNotes
     }
 
