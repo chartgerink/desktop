@@ -53,6 +53,7 @@ jobs:
           windows_certs: ${{ secrets.windows_certs }}
           windows_certs_password: ${{ secrets.windows_certs_password }}
           release: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          args: -c.releaseInfo.releaseNotesFile=./release-notes.md
           max_attempts: 5
         env:
           API_KEY_ID: ${{ secrets.api_key_id }}
