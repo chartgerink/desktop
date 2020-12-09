@@ -2,7 +2,7 @@
   "name": "hypergraph-desktop",
   "productName": "Hypergraph (TEST)",
   "author": "Liberate Science GmbH",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "description": "Hypergraph Desktop app",
   "license": "MIT",
   "repository": "chartgerink/desktop",
