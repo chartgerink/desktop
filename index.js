@@ -245,21 +245,36 @@ const main = async () => {
 
   if (app.isPackaged) autoUpdater.checkForUpdates()
 
-  console.log('testing the new changelog info')
-  autoUpdater.addListener('update-downloaded', info => {
+  autoUpdater.addListener('checking-for-update', info => {
+    console.log('Checking for update...')
     console.log(info)
-    const options = {
-      type: 'question',
-      buttons: ['Install'],
-      defaultId: 0,
-      title: 'Update Hypergraph',
-      message: 'New update',
-      detail: 'Testing changelog'
-    }
+  })
 
-    dialog.showMessageBox(null, options, response => {
-      if (response === 0) autoUpdater.quitAndInstall()
-    })
+  autoUpdater.addListener('update-available', info => {
+    console.log('Update available...')
+    console.log(info)
+  })
+
+  autoUpdater.addListener('download-progress', info => {
+    console.log('Download progress...')
+    console.log(info)
+  })
+
+  autoUpdater.addListener('update-downloaded', info => {
+    console.log('Update downloaded...')
+    console.log(info)
+    // const options = {
+    //   type: 'question',
+    //   buttons: ['Install'],
+    //   defaultId: 0,
+    //   title: 'Update Hypergraph',
+    //   message: 'New update',
+    //   detail: 'Testing changelog'
+    // }
+
+    // dialog.showMessageBox(null, options, response => {
+    //   if (response === 0) autoUpdater.quitAndInstall()
+    // })
   })
 }
 
