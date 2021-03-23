@@ -227,6 +227,10 @@ const updateMenu = () => {
           {
             label: 'Membership Area',
             click: () => shell.openExternal('https://gov.libscie.org')
+          },
+          {
+            label: 'Terms',
+            click: () => shell.openExternal('https://www.notion.so/libscie/Terms-Hypergraph-2794527482b54eddb5b7c991e8152999')
           }
         ]
       }
