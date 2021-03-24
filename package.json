@@ -42,6 +42,7 @@
     "polished": "^3.6.5",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "react-dropzone": "^11.3.1",
     "react-helmet": "^6.1.0",
     "react-markdown": "^5.0.3",
     "react-router-dom": "^5.2.0",

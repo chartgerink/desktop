@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, useContext } from 'react'
 import styled, { css } from 'styled-components'
 import { colors } from '@libscie/design-library'
+import { useDropzone } from 'react-dropzone'
+
 import { Button } from '../layout/grid'
 import ArrowUp2Rem from '../icons/arrow-up-2rem.svg'
 import { Label, Select, Textarea } from '../forms/forms'
 import TitleInput from '../forms/title-input'
 import subtypes from '@hypergraph-xyz/wikidata-identifiers'
-import AddFile from './add-file.svg'
-import { remote, ipcRenderer } from 'electron'
-import { basename, dirname, extname, join } from 'path'
+import { basename, extname } from 'path'
 import X from '../icons/x-1rem.svg'
 import { useHistory } from 'react-router-dom'
 import Anchor from '../anchor'
@@ -17,7 +17,8 @@ import { encode } from 'dat-encoding'
 import Tabbable from '../accessibility/tabbable'
 import { ProfileContext } from '../../lib/context'
 import ArrowDown1Rem from '../icons/arrow-down-1rem.svg'
-import { validations } from '@p2pcommons/sdk-js'
+import extensions from '@p2pcommons/sdk-js/lib/extensions'
+
 import NewSelect from 'react-select'
 
 const { FormData } = window
@@ -58,6 +59,7 @@ const RemoveFileAuthor = styled(X)`
 `
 const Info = styled.p`
   margin-bottom: 2rem;
+  margin-top: 0rem;
 `
 const ButtonGroup = styled.div`
   display: flex;
@@ -206,6 +208,32 @@ const customSelectStyle = {
   })
 }
 
+const getColor = props => {
+  if (props.isDragAccept) {
+    return colors.green500
+  }
+  if (props.isDragActive) {
+    return colors.yellow500
+  }
+  return colors.purple500
+}
+
+const DropContainer = styled.div`
+  flex: 1;
+  height: 188px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: auto;
+  justify-content: center;
+  padding: 20px;
+  border: 2px dashed ${props => getColor(props)};
+  background-color: ${colors.mono900};
+  color: ${colors.mono500};
+  transition: border 0.24s ease-in-out;
+  cursor: pointer;
+`
+
 const ReorderAuthor = ({ direction, isEnabled, onClick }) => (
   <ReorderArrow
     direction={direction}
@@ -334,6 +362,50 @@ const EditForm = ({
     setFiles(files)
   }
 
+  function BasicDropzone ({ props, title }) {
+    const {
+      acceptedFiles,
+      getRootProps,
+      getInputProps,
+      isDragActive,
+      isDragAccept
+    } = useDropzone({
+      accept:
+        'text/*,' +
+        extensions
+          .map(format => {
+            return '.' + format
+          })
+          .join(',')
+    })
+
+    useEffect(() => {
+      ;(async () => {
+        const newFiles = {}
+        for (const source of acceptedFiles) {
+          const destination = basename(source.path)
+          newFiles[source.path] = destination
+          setFilesUnique({ ...files, ...newFiles })
+        }
+      })()
+    })
+
+    return (
+      <div className='dropContainer'>
+        <Label htmlFor='files'>{title}</Label>
+        <Info>
+          These files are copied to Hypergraph. If you want to work on them
+          further, you can choose to work using Hypergraph’s copies or reimport
+          the files into Hypergraph when you’re done.
+        </Info>
+        <DropContainer {...getRootProps({ isDragActive, isDragAccept })}>
+          <input {...getInputProps()} />
+          <p>Drag and drop files (or click to select files)</p>
+        </DropContainer>
+      </div>
+    )
+  }
+
   const save = async ({ isRegister } = {}) => {
     setIsSaving(true)
     const data = new FormData(formRef.current)
@@ -391,89 +463,7 @@ const EditForm = ({
           options={options}
           styles={customSelectStyle}
         />
-        <Label htmlFor='files'>Add files</Label>
-        <Info>
-          These files are copied to Hypergraph. If you want to work on them
-          further, you can choose to work using Hypergraph’s copies or reimport
-          the files into Hypergraph when you’re done.
-        </Info>
-        <Button
-          type='button'
-          onClick={async e => {
-            e.preventDefault()
-            const opts = {
-              properties: ['multiSelections', 'openFile']
-            }
-            if (
-              !(await ipcRenderer.invoke(
-                'getStoreValue',
-                'create open dialog displayed'
-              ))
-            ) {
-              // set the default path on first launch, so it's not the
-              // app's directory
-              opts.defaultPath = remote.app.getPath('documents')
-              await ipcRenderer.invoke(
-                'setStoreValue',
-                'create open dialog displayed',
-                true
-              )
-            }
-            const {
-              filePaths: newSources
-            } = await remote.dialog.showOpenDialog(
-              remote.getCurrentWindow(),
-              opts
-            )
-
-            const invalidSources = []
-            for (let i = newSources.length - 1; i >= 0; i--) {
-              const source = newSources[i]
-              try {
-                await validations.validateMain({
-                  indexMetadata: {
-                    main: basename(source)
-                  },
-                  key: basename(dirname(source)),
-                  p2pcommonsDir: join(source, '..', '..')
-                })
-              } catch (_) {
-                invalidSources.push(source)
-                newSources.splice(i, 1)
-              }
-            }
-            if (invalidSources.length) {
-              await remote.dialog.showMessageBox(remote.getCurrentWindow(), {
-                type: 'warning',
-                title: 'Open file formats',
-                message:
-                  'The following files will not be added as they ' +
-                  'are not stored in open file formats:\n\n' +
-                  invalidSources
-                    .map((source, i) => {
-                      if (i < 5) {
-                        return `- ${source}\n`
-                      }
-                      if (i === 5) {
-                        return `(and ${invalidSources.length - 5} more)`
-                      }
-                      return ''
-                    })
-                    .join('')
-              })
-            }
-
-            const newFiles = { ...files }
-            for (const source of newSources) {
-              const destination = basename(source)
-              newFiles[source] = destination
-            }
-
-            setFilesUnique(newFiles)
-          }}
-        >
-          <AddFile />
-        </Button>
+        <BasicDropzone title='Add files' />
         <FileAuthorBlocks>
           {Object.entries(files).map(([source, destination]) => (
             <FileAuthorBlock key={source}>
