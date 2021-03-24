@@ -61,13 +61,6 @@ const Tour = ({ onClose, ...props }) => {
           )
         },
         {
-          content: (
-            <div>
-              <p>Now we'll see where you can find what information.</p>
-            </div>
-          )
-        },
-        {
           selector: '#menu-feed',
           content: <div>The feed tab shows all content in your network.</div>
         },
