@@ -78,6 +78,7 @@
   },
   "build": {
     "appId": "org.libscie.hypergraph",
+    "artifactName": "hypergraph-desktop.${ext}",
     "files": [
       "**/*",
       "build/**/*"

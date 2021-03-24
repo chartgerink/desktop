@@ -21,6 +21,7 @@ const Store = require('electron-store')
 const { autoUpdater } = require('electron-updater')
 const log = require('electron-log')
 const express = require('express')
+const { version: p2pcommons } = require('@p2pcommons/sdk-js/package.json')
 
 debug({ isEnabled: true, showDevTools: false })
 app.allowRendererProcessReuse = false
@@ -201,6 +202,15 @@ const updateMenu = () => {
       {
         role: 'help',
         submenu: [
+          {
+            label: 'About',
+            click: () => {
+              dialog.showMessageBox({
+                message: `Running version ${app.getVersion()} of ${app.getName()}\nPowered by version ${p2pcommons} of the p2pcommons`,
+                type: 'info'
+              })
+            }
+          },
           {
             label: 'Reopen welcome screens',
             click: () => store.set('showWelcome', true)
