@@ -79,16 +79,16 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: mac
-          path: dist/${{ steps.productName.outputs.productName }}-${{ steps.version.outputs.version }}.dmg
+          path: dist/${{ steps.productName.outputs.productName }}.dmg
       - name: archive linux appimage
         if: startsWith(matrix.os, 'ubuntu')
         uses: actions/upload-artifact@v1
         with:
           name: linux
-          path: dist/${{ steps.productName.outputs.productName }}-${{ steps.version.outputs.version }}.AppImage
+          path: dist/${{ steps.productName.outputs.productName }}.AppImage
       - name: archive windows setup
         if: startsWith(matrix.os, 'windows')
         uses: actions/upload-artifact@v1
         with:
           name: windows
-          path: dist/${{ steps.productName.outputs.productName }} Setup ${{ steps.version.outputs.version }}.exe
+          path: dist/${{ steps.productName.outputs.productName }}.exe
