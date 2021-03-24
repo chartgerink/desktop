@@ -6,10 +6,6 @@ We recognize all our contributors using the [all-contributors](https://github.co
 
 Come and join us on [Slack](https://join.slack.com/t/libscie/shared_invite/zt-9l0ig1x1-Sxjun7D6056cOUQ2Ai_Bkw) to chat with our team and stay up to date with all [Liberate Science](https://libscie.org) goings-on.
 
-## Code of conduct
-
-Please note we adhere to a [Code of Conduct](https://github.com/hypergraph-xyz/cli/blob/master/CODE_OF_CONDUCT.md) and any contributions not in line with it (_tl;dr_ be an empathetic, considerate person) will not be accepted. Please notify [@chartgerink](mailto:chris@libscie.org) if anything happens.
-
 ## Feature requests & bug reports
 
 Feature requests and bug reports can be submitted through [GitHub issues](https://github.com/hypergraph-xyz/desktop/issues).

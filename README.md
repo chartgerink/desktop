@@ -13,6 +13,16 @@
 
 Hypergraph is a tool for publishing research step by step, built upon the [p2pcommons](https://p2pcommons.com), a distributed information layer.
 
+## House rules
+
+You're welcome to our house in good faith – read our [code of conduct](https://www.notion.so/libscie/Code-of-Conduct-580ab64832a2478fad7d9dfad9d3da15) for the house rules applicable to all contributions. 
+
+These house rules exist to grow a community that respects personal boundaries, differences, and recognizes privilege. Please make the effort to listen when somebody makes the effort to provide you with feedback, also when it is difficult to hear or understand. Good intent does not excuse behavior in violation of these house rules ([read more about why here](https://thebias.com/2017/09/26/how-good-intent-undermines-diversity-and-inclusion/)). 
+
+Our house may be different from yours, and if you find any of this unagreeable, that's perfectly okay, and we ask you respectfully to not contribute. 
+
+## About
+
 <img src="/docs/screenshots/screenshot-content.png" align="right" height="300" />
 
 With Hypergraph, we aim to reinvent the publication process in a way that empowers researchers to do better science. Science that is transparent, accessible to everyone and free from publication bias, time-consuming bureaucracy and centralized control.
