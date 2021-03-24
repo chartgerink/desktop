@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, useContext } from 'react'
 import styled, { css } from 'styled-components'
+import { colors } from '@libscie/design-library'
+import { useDropzone } from 'react-dropzone'
+
 import { Button } from '../layout/grid'
 import ArrowUp2Rem from '../icons/arrow-up-2rem.svg'
 import { Label, Select, Textarea } from '../forms/forms'
 import TitleInput from '../forms/title-input'
 import subtypes from '@hypergraph-xyz/wikidata-identifiers'
-import AddFile from './add-file.svg'
-import { remote, ipcRenderer } from 'electron'
-import { purple, red, green, yellow, gray, white } from '../../lib/colors'
-import { basename, dirname, extname, join } from 'path'
+import { basename, extname } from 'path'
 import X from '../icons/x-1rem.svg'
 import { useHistory } from 'react-router-dom'
 import Anchor from '../anchor'
@@ -17,9 +17,14 @@ import { encode } from 'dat-encoding'
 import Tabbable from '../accessibility/tabbable'
 import { ProfileContext } from '../../lib/context'
 import ArrowDown1Rem from '../icons/arrow-down-1rem.svg'
-import { validations } from '@p2pcommons/sdk-js'
+import extensions from '@p2pcommons/sdk-js/lib/extensions'
+
+import NewSelect from 'react-select'
 
 const { FormData } = window
+const options = Object.keys(subtypes).map(key => {
+  return { value: key, label: subtypes[key] }
+})
 
 const Container = styled.div`
   margin: 2rem;
@@ -36,7 +41,7 @@ const FileAuthorBlocks = styled.div`
 `
 const FileAuthorBlock = styled.div`
   width: 100%;
-  border: 2px solid ${purple};
+  border: 2px solid ${colors.purple500};
   line-height: 2;
   padding-left: 1rem;
   margin-top: 1em;
@@ -54,10 +59,12 @@ const RemoveFileAuthor = styled(X)`
 `
 const Info = styled.p`
   margin-bottom: 2rem;
+  margin-top: 0rem;
 `
 const ButtonGroup = styled.div`
   display: flex;
   align-items: baseline;
+  padding-bottom: 2rem;
 `
 const ReorderArrow = styled(({ isEnabled, ...rest }) => (
   <ArrowDown1Rem {...rest} />
@@ -68,10 +75,165 @@ const ReorderArrow = styled(({ isEnabled, ...rest }) => (
       transform: rotate(180deg);
     `}
   path {
-    fill: ${props => props => (props.isEnabled ? white : gray)};
+    fill: ${props => props =>
+      props.isEnabled ? colors.white : colors.mono500};
   }
   margin-right: 0.5rem;
 `
+// specific react-select style
+// does not use styled-components
+const customSelectStyle = {
+  clearIndicator: (provided, state) => ({
+    // display: 'none'
+    marginRight: '2.5rem',
+    alignSelf: 'flex-end',
+    position: 'absolute',
+    right: 0
+  }),
+  container: provided => ({
+    ...provided,
+    marginBottom: '1rem'
+  }),
+  control: provided => ({
+    ...provided,
+    borderRadius: 0,
+    margin: 0,
+    borderColor: colors.purple500,
+    borderWidth: 2,
+    backgroundColor: colors.mono900,
+    hoverBorderColor: colors.white,
+    '&:hover': {
+      borderColor: colors.purple500
+    },
+    boxShadow: 'none',
+    position: 'relative'
+  }),
+  dropdownIndicator: () => ({
+    marginRight: '1rem',
+    alignSelf: 'flex-end',
+    position: 'absolute',
+    right: 0
+    // display: "inline",
+  }),
+  indicatorSeparator: () => ({}),
+  input: provided => ({
+    position: 'absolute',
+    top: '5px',
+    fontFamily: 'Roboto',
+    display: 'inline-block',
+    marginLeft: '1rem'
+  }),
+  menu: provided => ({
+    ...provided,
+    margin: 0,
+    borderRadius: 0,
+    borderBottom: `2px solid ${colors.purple500}`,
+    borderLeft: `2px solid ${colors.purple500}`,
+    borderRight: `2px solid ${colors.purple500}`
+  }),
+  menuList: provided => ({
+    ...provided,
+    marginTop: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    maxHeight: '14rem',
+    fontFamily: 'Roboto',
+    backgroundColor: colors.mono900
+  }),
+  multiValue: (provided, state) => ({
+    margin: '5px 2px 3px 2px',
+    backgroundColor: colors.purple500,
+    borderRadius: 100,
+    display: 'inline-block',
+    width: 'auto',
+    maxHeight: '24px',
+    position: 'relative'
+  }),
+  multiValueLabel: (provided, state) => ({
+    // use this to adjust the text
+    ...provided,
+    color: colors.white,
+    marginLeft: '8px',
+    marginRight: '8px',
+    minWidth: '60px',
+    maxWidth: '180px',
+    position: 'relative',
+    padding: 0,
+    paddingLeft: 0,
+    fontSize: '100%'
+    // alignSelf: 'center'
+  }),
+  multiValueRemove: (provided, state) => ({
+    margin: 0,
+    color: colors.purple500,
+    width: '16px',
+    height: '20px',
+    opacity: 0,
+    position: 'absolute',
+    top: '4px',
+    right: '1px',
+    borderRadius: 100,
+    '&:hover': {
+      color: colors.white,
+      backgroundColor: colors.purple500,
+      opacity: 100
+    }
+  }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isFocused ? colors.purple500 : null,
+    margin: 0,
+    paddingLeft: '1rem',
+    border: colors.purple500
+  }),
+  noOptionsMessage: () => ({
+    margin: '1rem',
+    color: colors.mono500,
+    height: '1rem'
+  }),
+  placeholder: provided => ({
+    ...provided,
+    marginLeft: '1rem'
+  }),
+  singleValue: provided => ({
+    ...provided,
+    color: colors.white,
+    fontFamily: 'Roboto',
+    marginLeft: '1rem'
+  }),
+  valueContainer: () => ({
+    // marginLeft: '1rem',
+    // marginTop: 5,
+    display: 'inline-block'
+  })
+}
+
+const getColor = props => {
+  if (props.isDragAccept) {
+    return colors.green500
+  }
+  if (props.isDragActive) {
+    return colors.yellow500
+  }
+  return colors.purple500
+}
+
+const DropContainer = styled.div`
+  flex: 1;
+  height: 188px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: auto;
+  justify-content: center;
+  padding: 20px;
+  border: 2px dashed ${props => getColor(props)};
+  background-color: ${colors.mono900};
+  color: ${colors.mono500};
+  transition: border 0.24s ease-in-out;
+  cursor: pointer;
+`
+
 const ReorderAuthor = ({ direction, isEnabled, onClick }) => (
   <ReorderArrow
     direction={direction}
@@ -105,7 +267,8 @@ const EditForm = ({
   const [isValidDraft, setIsValidDraft] = useState()
   const [files, setFiles] = useState({})
   const [main, setMain] = useState(defaultMain)
-  const [potentialParents, setPotentialParents] = useState()
+  const [potentialParents, setPotentialParents] = useState([])
+  const [parents, setParents] = useState([])
   const [profiles, setProfiles] = useState()
   const { url: profileUrl } = useContext(ProfileContext)
   const [authors, setAuthors] = useState(defaultAuthors || [encode(profileUrl)])
@@ -123,19 +286,49 @@ const EditForm = ({
       const contentUrls = [
         ...new Set(profiles.map(profile => profile.rawJSON.contents).flat())
       ]
-      setPotentialParents(
+
+      if (parentUrl) {
         await Promise.all(
-          contentUrls
+          [parentUrl]
+            .flat()
             .map(url => url.split('+'))
             .filter(
               ([key]) => !url || encode(key) !== encode(url.split('+')[0])
             )
             .map(([key, version]) => p2p.clone(encode(key), version))
-        )
-      )
+        ).then(oldParents => {
+          const x = []
+          oldParents.map(parent => {
+            const value = [
+              encode(parent.rawJSON.url),
+              parent.metadata.version
+            ].join('+')
+            x.push({ value, label: parent.rawJSON.title })
+          })
+          setParents(parents.concat(x))
+        })
+      }
+
+      await Promise.all(
+        contentUrls
+          .map(url => url.split('+'))
+          .filter(([key]) => !url || encode(key) !== encode(url.split('+')[0]))
+          .map(([key, version]) => p2p.clone(encode(key), version))
+      ).then(rawParent => {
+        const x = []
+        rawParent.map(parent => {
+          const value = [
+            encode(parent.rawJSON.url),
+            parent.metadata.version
+          ].join('+')
+          x.push({ value, label: parent.rawJSON.title })
+        })
+        setPotentialParents(x)
+      })
     })()
   }, [])
 
+  // CHJH: This violates rules of hooks TODO
   if (url) {
     useEffect(() => {
       ;(async () => {
@@ -169,6 +362,50 @@ const EditForm = ({
     setFiles(files)
   }
 
+  function BasicDropzone ({ props, title }) {
+    const {
+      acceptedFiles,
+      getRootProps,
+      getInputProps,
+      isDragActive,
+      isDragAccept
+    } = useDropzone({
+      accept:
+        'text/*,' +
+        extensions
+          .map(format => {
+            return '.' + format
+          })
+          .join(',')
+    })
+
+    useEffect(() => {
+      ;(async () => {
+        const newFiles = {}
+        for (const source of acceptedFiles) {
+          const destination = basename(source.path)
+          newFiles[source.path] = destination
+          setFilesUnique({ ...files, ...newFiles })
+        }
+      })()
+    })
+
+    return (
+      <div className='dropContainer'>
+        <Label htmlFor='files'>{title}</Label>
+        <Info>
+          These files are copied to Hypergraph. If you want to work on them
+          further, you can choose to work using Hypergraph’s copies or reimport
+          the files into Hypergraph when you’re done.
+        </Info>
+        <DropContainer {...getRootProps({ isDragActive, isDragAccept })}>
+          <input {...getInputProps()} />
+          <p>Drag and drop files (or click to select files)</p>
+        </DropContainer>
+      </div>
+    )
+  }
+
   const save = async ({ isRegister } = {}) => {
     setIsSaving(true)
     const data = new FormData(formRef.current)
@@ -176,12 +413,18 @@ const EditForm = ({
       title: data.get('title'),
       description: data.get('description'),
       subtype: data.get('subtype'),
-      parent: data.get('parent'),
+      parent: parents.map(obj => {
+        return obj.value
+      }),
       main,
       files,
       isRegister,
       authors
     })
+  }
+
+  const handleParents = x => {
+    setParents(x === null ? [] : x)
   }
 
   return (
@@ -197,121 +440,30 @@ const EditForm = ({
         {potentialParents && potentialParents.length > 0 && (
           <>
             <Label htmlFor='parent'>Follows from</Label>
-            <Select name='parent' defaultValue={parentUrl}>
-              <option value=''>None</option>
-              {potentialParents.map(parent => {
-                const value = [
-                  encode(parent.rawJSON.url),
-                  parent.metadata.version
-                ].join('+')
-                return (
-                  <option value={value} key={value}>
-                    {
-                      profiles.find(
-                        profile =>
-                          encode(profile.rawJSON.url) ===
-                          parent.rawJSON.authors[0]
-                      ).rawJSON.title
-                    }
-                    {parent.rawJSON.authors.length > 1 ? ' et. al' : null}.{' '}
-                    {parent.rawJSON.title}
-                  </option>
-                )
-              })}
-            </Select>
+            <NewSelect
+              defaultValue={parents}
+              isMulti
+              name='parent'
+              options={potentialParents}
+              className='basic-multi-select'
+              classNamePrefix='select'
+              onChange={handleParents}
+              styles={customSelectStyle}
+            />
           </>
         )}
         <Label htmlFor='subtype'>Content type</Label>
-        <Select name='subtype' defaultValue={subtype}>
-          {Object.entries(subtypes).map(([id, text]) => (
-            <option value={id} key={id}>
-              {text}
-            </option>
-          ))}
-        </Select>
-        <Label htmlFor='files'>Add files</Label>
-        <Info>
-          These files are copied to Hypergraph. If you want to work on them
-          further, you can choose to work using Hypergraph’s copies or reimport
-          the files into Hypergraph when you’re done.
-        </Info>
-        <Button
-          type='button'
-          onClick={async e => {
-            e.preventDefault()
-            const opts = {
-              properties: ['multiSelections', 'openFile']
-            }
-            if (
-              !(await ipcRenderer.invoke(
-                'getStoreValue',
-                'create open dialog displayed'
-              ))
-            ) {
-              // set the default path on first launch, so it's not the
-              // app's directory
-              opts.defaultPath = remote.app.getPath('documents')
-              await ipcRenderer.invoke(
-                'setStoreValue',
-                'create open dialog displayed',
-                true
-              )
-            }
-            const {
-              filePaths: newSources
-            } = await remote.dialog.showOpenDialog(
-              remote.getCurrentWindow(),
-              opts
-            )
-
-            const invalidSources = []
-            for (let i = newSources.length - 1; i >= 0; i--) {
-              const source = newSources[i]
-              try {
-                await validations.validateMain({
-                  indexMetadata: {
-                    main: basename(source)
-                  },
-                  key: basename(dirname(source)),
-                  p2pcommonsDir: join(source, '..', '..')
-                })
-              } catch (_) {
-                invalidSources.push(source)
-                newSources.splice(i, 1)
-              }
-            }
-            if (invalidSources.length) {
-              await remote.dialog.showMessageBox(remote.getCurrentWindow(), {
-                type: 'warning',
-                title: 'Open file formats',
-                message:
-                  'The following files will not be added as they ' +
-                  'are not stored in open file formats:\n\n' +
-                  invalidSources
-                    .map((source, i) => {
-                      if (i < 5) {
-                        return `- ${source}\n`
-                      }
-                      if (i === 5) {
-                        return `(and ${invalidSources.length - 5} more)`
-                      }
-                      return ''
-                    })
-                    .join('')
-              })
-            }
-
-            const newFiles = { ...files }
-            for (const source of newSources) {
-              const destination = basename(source)
-              newFiles[source] = destination
-            }
-
-            setFilesUnique(newFiles)
-          }}
-        >
-          <AddFile />
-        </Button>
+        <NewSelect
+          className='basic-single'
+          classNamePrefix='select'
+          defaultValue={
+            !subtype ? options[0] : options.find(x => x.value === subtype)
+          }
+          name='subtype'
+          options={options}
+          styles={customSelectStyle}
+        />
+        <BasicDropzone title='Add files' />
         <FileAuthorBlocks>
           {Object.entries(files).map(([source, destination]) => (
             <FileAuthorBlock key={source}>
@@ -413,7 +565,7 @@ const EditForm = ({
             type='button'
             isLoading={isSaving && isSaving.register}
             disabled={!isValid || isSaving}
-            color={green}
+            color={colors.green500}
             onClick={() => save({ isRegister: true })}
           >
             Add to profile
@@ -421,13 +573,13 @@ const EditForm = ({
           <Button
             isLoading={isSaving && !isSaving.register}
             disabled={!isValidDraft || isSaving}
-            color={yellow}
+            color={colors.yellow500}
           >
             Save as draft
           </Button>
           <Anchor
             onClick={() => history.go(-1)}
-            color={red}
+            color={colors.red500}
             disabled={isSaving}
           >
             Cancel

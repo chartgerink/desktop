@@ -14,7 +14,7 @@ import Feed from './components/feed/feed'
 import Discover from './components/discover/discover'
 import P2P from '@p2pcommons/sdk-js'
 import { HashRouter as Router, Switch, Route } from 'react-router-dom'
-import { remote, ipcRenderer } from 'electron'
+import { shell, remote, ipcRenderer } from 'electron'
 import { ProfileContext } from './lib/context'
 import FindModal from './components/modal/find-modal'
 import { archiveModule } from './lib/vault'
@@ -41,10 +41,10 @@ const p2p = new P2P({
     : undefined
 })
 window.addEventListener('beforeunload', () => p2p.destroy())
-p2p.on('download-resume', () => console.log('download-resume'))
+p2p.on('download-resume', key => console.log('download-resume', key))
 p2p.on('download-started', () => console.log('download-started'))
-p2p.on('download-progress', () => console.log('download-progress'))
-p2p.on('download-complete', () => console.log('download-complete'))
+p2p.on('download-progress', ({ key }) => console.log('download-progress', key))
+p2p.on('download-drive-completed', key => console.log('download-complete', key))
 
 ipcRenderer.on('export graph', async () => {
   const [profiles, contents] = await Promise.all([
@@ -141,7 +141,7 @@ const App = () => {
 
   useEffect(() => {
     ;(async () => {
-      setShowWelcome(await ipcRenderer.invoke('getStoreValue', 'welcome'))
+      setShowWelcome(await ipcRenderer.invoke('getStoreValue', 'showWelcome'))
     })()
   }, [])
 
@@ -186,21 +186,18 @@ const App = () => {
   }, [profileUrl])
 
   useEffect(() => {
-    ipcRenderer.on('welcome', (_, showWelcome) => {
+    ipcRenderer.on('showWelcome', (_, showWelcome) => {
       setShowWelcome(showWelcome)
     })
   }, [])
 
-  if (loading) return <Container />
-  if (!profileUrl || showWelcome) {
-    return (
-      <Container profileUrl={profileUrl}>
-        <Welcome p2p={p2p} setProfileUrl={setProfileUrl} />
-      </Container>
-    )
-  }
-
-  return (
+  return loading ? (
+    <Container />
+  ) : !profileUrl || showWelcome ? (
+    <Container profileUrl={profileUrl}>
+      <Welcome p2p={p2p} setProfileUrl={setProfileUrl} />
+    </Container>
+  ) : (
     <Container profileUrl={profileUrl} onFind={() => setIsFinding(true)}>
       {isFinding && (
         <FindModal
@@ -252,3 +249,11 @@ const App = () => {
 }
 
 ReactDOM.render(<App />, document.getElementById('root'))
+
+document.body.addEventListener('click', event => {
+  const externalOpen = new RegExp(/^https?:\/\/(?!localhost:1212)/)
+  if (event.target.href && externalOpen.test(event.target.href)) {
+    event.preventDefault()
+    shell.openExternal(event.target.href)
+  }
+})

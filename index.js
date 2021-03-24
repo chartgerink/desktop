@@ -1,8 +1,17 @@
 'use strict'
 
-const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron')
+const {
+  app,
+  BrowserWindow,
+  Menu,
+  shell,
+  dialog,
+  ipcMain,
+  Notification
+} = require('electron')
 const debug = require('electron-debug')
 const del = require('del')
+const { ensureDirSync } = require('fs-extra')
 const { once } = require('events')
 const AdmZip = require('adm-zip')
 const { promises: fs } = require('fs')
@@ -11,6 +20,7 @@ const chmodr = require('chmodr')
 const Store = require('electron-store')
 const { autoUpdater } = require('electron-updater')
 const log = require('electron-log')
+const express = require('express')
 
 debug({ isEnabled: true, showDevTools: false })
 app.allowRendererProcessReuse = false
@@ -23,6 +33,10 @@ const p2pcommonsDir = `${app.getPath('home')}/.p2pcommons${
   !app.isPackaged ? '-dev' : ''
 }`
 
+const p2pcommonsLocal = express()
+p2pcommonsLocal.use(express.static(p2pcommonsDir))
+p2pcommonsLocal.listen(5152)
+
 log.transports.file.level = 'debug'
 log.transports.ipc.level = 'debug'
 autoUpdater.logger = log
@@ -31,12 +45,54 @@ ipcMain.handle('getStoreValue', (_, key, defaultValue) =>
   store.get(key, defaultValue)
 )
 ipcMain.handle('setStoreValue', (_, key, value) => store.set(key, value))
-;['vault', 'welcome', 'tour', 'analytics', 'chatra'].forEach(key => {
+;[
+  'vault',
+  'showWelcome',
+  'tour',
+  'analytics',
+  'chatra',
+  'keyBackedUp',
+  'lastInstalledAppVersion',
+  'showTerms'
+].forEach(key => {
   store.onDidChange(
     key,
     value => mainWindow && mainWindow.webContents.send(key, value)
   )
 })
+
+ipcMain.handle('dragOut', (_, value) => {
+  _.sender.startDrag({
+    file: value,
+    icon: './build/noun_Hand_43997.png'
+  })
+})
+
+ipcMain.handle('copyPrivateKey', async (_, value) => {
+  const { filePath } = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: 'hypergraph-key.zip'
+  })
+  if (!filePath) return
+
+  await withRestart(async () => {
+    const zip = new AdmZip()
+    zip.addLocalFolder(p2pcommonsDir)
+    zip.writeZip(filePath)
+
+    store.set('keyBackedUp', true)
+  })
+})
+
+if (
+  app.getVersion() !== store.get('lastInstalledAppVersion') &&
+  // Only undefined if welcome screens haven't been completed once
+  // Proxy for whether it is the first time launching the application
+  !store.get('showWelcome') === undefined
+) {
+  // Set both to true if you want just terms to show
+  store.set('showWelcome', false)
+  store.set('showTerms', false)
+}
 
 const withRestart = async cb => {
   restarting = true
@@ -92,7 +148,7 @@ const updateMenu = () => {
             label: 'Back up database',
             click: async () => {
               const { filePath } = await dialog.showSaveDialog(mainWindow, {
-                defaultPath: 'p2pcommons.zip'
+                defaultPath: 'hypergraph-key.zip'
               })
               if (!filePath) return
 
@@ -100,6 +156,8 @@ const updateMenu = () => {
                 const zip = new AdmZip()
                 zip.addLocalFolder(p2pcommonsDir)
                 zip.writeZip(filePath)
+
+                store.set('keyBackedUp', true)
               })
             }
           },
@@ -145,7 +203,7 @@ const updateMenu = () => {
         submenu: [
           {
             label: 'Reopen welcome screens',
-            click: () => store.set('welcome', true)
+            click: () => store.set('showWelcome', true)
           },
           {
             label: 'Reopen tour',
@@ -160,11 +218,19 @@ const updateMenu = () => {
           },
           {
             label: 'Learn More',
-            click: () => shell.openExternal('https://hypergraph.xyz')
+            click: () => shell.openExternal('http://hypergraph.xyz')
           },
           {
             label: 'Community chat',
             click: () => shell.openExternal('https://chat.libscie.org')
+          },
+          {
+            label: 'Membership Area',
+            click: () => shell.openExternal('https://gov.libscie.org')
+          },
+          {
+            label: 'Terms',
+            click: () => shell.openExternal('https://www.notion.so/libscie/Terms-Hypergraph-2794527482b54eddb5b7c991e8152999')
           }
         ]
       }
@@ -182,7 +248,8 @@ const createMainWindow = async () => {
     minWidth: 820,
     minHeight: 764,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      enableRemoteModule: true
     },
     titleBarStyle: 'hiddenInset'
   })
@@ -226,9 +293,13 @@ app.on('activate', async () => {
 })
 
 const main = async () => {
+  ensureDirSync(p2pcommonsDir)
+  // ensure chmod +rw for p2pcommonsdir
+  await promisify(chmodr)(p2pcommonsDir, 0o666)
   await app.whenReady()
   mainWindow = await createMainWindow()
   app.setAsDefaultProtocolClient('hypergraph')
+<<<<<<< HEAD
 
   const options = {
     type: 'question',
@@ -276,6 +347,31 @@ const main = async () => {
     //   if (response === 0) autoUpdater.quitAndInstall()
     // })
   })
+=======
+  if (app.isPackaged) autoUpdater.checkForUpdatesAndNotify()
+  if (!store.get('keyBackedUp') && store.get('showWelcome') === false) {
+    const backUpKey = new Notification({
+      title: 'Back up your key',
+      body:
+        'To ensure you keep access to your account, back up your key by clicking here.'
+    })
+    backUpKey.show()
+    backUpKey.on('click', async () => {
+      const { filePath } = await dialog.showSaveDialog(mainWindow, {
+        defaultPath: 'hypergraph-key.zip'
+      })
+      if (!filePath) return
+
+      await withRestart(async () => {
+        const zip = new AdmZip()
+        zip.addLocalFolder(p2pcommonsDir)
+        zip.writeZip(filePath)
+
+        store.set('keyBackedUp', true)
+      })
+    })
+  }
+>>>>>>> 807d505ae49ff968ccb2ba8b05a5528a76759d4d
 }
 
 main()

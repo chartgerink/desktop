@@ -20,6 +20,7 @@ const Profile = styled.span`
   align-items: center;
   flex-grow: 1;
   height: 100%;
+  cursor: pointer;
 `
 const StyledAvatar = styled(Avatar)`
   margin-left: 2rem;
@@ -37,12 +38,13 @@ const Following = ({ p2p }) => {
 
   useEffect(() => {
     ;(async () => {
-      setFollowing(
-        await Promise.all(
-          (await p2p.get(profileUrl)).rawJSON.follows.map(key =>
-            p2p.clone(encode(key))
-          )
+      const profiles = await Promise.all(
+        (await p2p.get(profileUrl)).rawJSON.follows.map(key =>
+          p2p.clone(encode(key))
         )
+      )
+      setFollowing(
+        profiles.sort((a, b) => a.rawJSON.title.localeCompare(b.rawJSON.title))
       )
     })()
   }, [])

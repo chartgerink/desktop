@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useContext, Fragment } from 'react'
 import styled from 'styled-components'
-import { green, yellow, red, gray } from '../../lib/colors'
+import ReactMarkdown from 'react-markdown'
+import gfm from 'remark-gfm'
+import behead from 'remark-behead'
+import math from 'remark-math'
+import TeX from '@matejmazur/react-katex'
+import { colors } from '@libscie/design-library'
 import { encode } from 'dat-encoding'
+import path from 'path'
+
 import { Button, Title } from '../layout/grid'
 import { useHistory, Link } from 'react-router-dom'
 import Anchor from '../anchor'
 import Arrow from '../icons/arrow-up-2rem.svg'
-import { remote, ipcRenderer } from 'electron'
+import { remote, ipcRenderer, shell } from 'electron'
 import { promises as fs } from 'fs'
 import AdmZip from 'adm-zip'
 import { Label } from '../forms/forms'
@@ -21,6 +28,7 @@ import { archiveModule } from '../../lib/vault'
 import { Heading1 } from '../typography'
 import Author from '../author/author'
 import ContentPageSpinner from './content-page-spinner.svg'
+import remark from 'remark'
 
 const Container = styled.div`
   margin: 2rem;
@@ -32,18 +40,20 @@ const BackArrow = styled(Arrow)`
 `
 const Authors = styled.div`
   font-size: 1.5rem;
-  color: ${gray};
+  color: ${colors.mono500};
 `
 const Description = styled.div`
   margin-top: 2rem;
   margin-bottom: 1.5rem;
+  max-width: 820px;
+  text-align: justify;
 `
 const NoMain = styled.div`
   margin-bottom: 1rem;
 `
 const File = styled.div`
   width: 100%;
-  border: 2px solid ${green};
+  border: 2px solid ${colors.green500};
   line-height: 2;
   padding-left: 0.5rem;
   padding-right: 1rem;
@@ -57,7 +67,7 @@ const File = styled.div`
   }
 
   :hover {
-    background-color: ${green};
+    background-color: ${colors.green500};
   }
   :active {
     background-color: inherit;
@@ -65,10 +75,40 @@ const File = styled.div`
 `
 const Actions = styled.div`
   margin-top: 2rem;
+  padding-bottom: 2rem;
 `
 const StyledHeading1 = styled(Heading1)`
   font-size: 2rem;
   margin-top: 2rem;
+`
+const MainContent = styled.div`
+  max-width: 820px;
+  text-align: justify;
+  img {
+    max-width: 100%;
+    max-height: 700px;
+    display: block;
+    margin: 1rem auto;
+  }
+  a {
+    border-bottom: 2px solid #574cfa;
+    color: #ffffff;
+    text-decoration: none;
+  }
+  a:hover {
+    background: #574cfa;
+  }
+  table {
+    border-bottom: 2px solid #574cfa;
+    border-spacing: 0;
+  }
+  th {
+    border-bottom: 2px solid #574cfa;
+  }
+  td {
+    padding: 0.5rem;
+    text-align: left;
+  }
 `
 
 const ExportZip = ({ directory }) => (
@@ -92,9 +132,38 @@ const ExportZip = ({ directory }) => (
   </Button>
 )
 
+const renderers = {
+  inlineMath: ({ value }) => <TeX math={value} />,
+  math: ({ value }) => <TeX block math={value} />
+}
+
 const getContentDirectory = async ({ p2p, key, version }) => {
   const directory = `${p2p.baseDir}/${key}`
   return version ? `${directory}+${version}` : directory
+}
+
+const secureFileOpen = async (dir, file) => {
+  const isFile = (await fs.stat(`${dir}/${file}`)).isFile()
+  const fileExtension = path.extname(file)
+  if (
+    (!fileExtension && isFile) ||
+    fileExtension === '.ps1' ||
+    fileExtension === '.sh' ||
+    fileExtension === '.bat'
+  ) {
+    const choice = remote.dialog.showMessageBoxSync({
+      type: 'question',
+      title: 'Security',
+      message:
+        'For your security, Hypergraph will not open this file. Please inspect file manually.',
+      buttons: ['Open folder', 'Cancel']
+    })
+    if (choice === 0) {
+      shell.openPath(`${dir}`)
+    }
+    return
+  }
+  remote.shell.openPath(`${dir}/${file}`)
 }
 
 const Content = ({ p2p, contentKey: key, version, renderRow }) => {
@@ -108,6 +177,7 @@ const Content = ({ p2p, contentKey: key, version, renderRow }) => {
   const [canRegisterContent, setCanRegisterContent] = useState()
   const [canDeregisterContent, setCanDeregisterContent] = useState()
   const [isSharing, setIsSharing] = useState()
+  const [mainMarkdown, setMainMarkdown] = useState()
   const history = useHistory()
   const { url: profileUrl } = useContext(ProfileContext)
 
@@ -119,9 +189,30 @@ const Content = ({ p2p, contentKey: key, version, renderRow }) => {
 
   useEffect(() => {
     ;(async () => {
-      const directory = await getContentDirectory({ p2p, key, version })
-      setDirectory(directory)
-      await fetchFiles(directory)
+      try {
+        const directory = await getContentDirectory({ p2p, key, version })
+        setDirectory(directory)
+        await fetchFiles(directory)
+      } catch (error) {
+        if (error.code === 'ENOENT') {
+          const choice = remote.dialog.showMessageBoxSync({
+            type: 'question',
+            title: 'Module unavailable',
+            message:
+              'You have not downloaded this research module. Would you like to download or delete it?',
+            buttons: ['Redownload', 'Delete']
+          })
+          if (choice === 1) {
+            const deleteFiles = false
+            await p2p.delete(key, deleteFiles)
+            history.go(-1)
+          } else {
+            await p2p.clone(key)
+          }
+        } else {
+          throw error
+        }
+      }
     })()
   }, [key, version])
 
@@ -164,6 +255,18 @@ const Content = ({ p2p, contentKey: key, version, renderRow }) => {
     if (!content) return
     fetchAuthors()
     fetchParents()
+    ;(async () => {
+      if (content.rawJSON.main.endsWith('.md')) {
+        const md = await (
+          await fs.readFile(`${directory}/${content.rawJSON.main}`)
+        ).toString()
+        remark()
+          .use(behead, { depth: +1 })
+          .process(md)
+          .then(vfile => vfile.toString())
+          .then(markdown => setMainMarkdown(markdown))
+      }
+    })()
   }, [content])
 
   useEffect(() => {
@@ -205,7 +308,7 @@ const Content = ({ p2p, contentKey: key, version, renderRow }) => {
           {canRegisterContent && content.metadata.isWritable && (
             <Button
               type='button'
-              color={green}
+              color={colors.green500}
               onClick={() => {
                 history.push(
                   `/edit/${encode(content.rawJSON.url)}/${
@@ -230,6 +333,7 @@ const Content = ({ p2p, contentKey: key, version, renderRow }) => {
             )}/${parent.metadata.version}`}
           >
             {parent.rawJSON.title}
+            <br />
           </Link>
         ))}
         <StyledHeading1>{content.rawJSON.title}</StyledHeading1>
@@ -248,11 +352,48 @@ const Content = ({ p2p, contentKey: key, version, renderRow }) => {
         </Authors>
         <Description>{newlinesToBr(content.rawJSON.description)}</Description>
         <Label>Main file</Label>
-        {content.rawJSON.main ? (
+        {content.rawJSON.main.endsWith('.md') ? (
+          <MainContent>
+            <ReactMarkdown
+              plugins={[gfm, math]}
+              children={mainMarkdown}
+              renderers={renderers}
+              linkTarget='noopener noreferrer'
+              transformImageUri={uri => {
+                if (!uri.startsWith('http')) {
+                  if (canRegisterContent) {
+                    return `http://localhost:5152/${key}/${uri}`
+                  } else {
+                    return `http://localhost:5152/${key}+${version}/${uri}`
+                  }
+                }
+                return uri
+              }}
+              transformLinkUri={uri => {
+                if (!uri.startsWith('http')) {
+                  if (canRegisterContent) {
+                    return `http://localhost:5152/${key}/${uri}`
+                  } else {
+                    return `http://localhost:5152/${key}+${version}/${uri}`
+                  }
+                }
+                return uri
+              }}
+            />
+          </MainContent>
+        ) : content.rawJSON.main ? (
           <Tabbable
             component={File}
             onClick={() => {
-              remote.shell.openPath(`${directory}/${content.rawJSON.main}`)
+              secureFileOpen(directory, content.rawJSON.main)
+            }}
+            draggable
+            onDragStart={event => {
+              event.preventDefault()
+              ipcRenderer.invoke(
+                'dragOut',
+                `${directory}/${content.rawJSON.main}`
+              )
             }}
           >
             {content.rawJSON.main}
@@ -269,7 +410,12 @@ const Content = ({ p2p, contentKey: key, version, renderRow }) => {
                   component={File}
                   key={path}
                   onClick={() => {
-                    remote.shell.openPath(`${directory}/${path}`)
+                    secureFileOpen(directory, path)
+                  }}
+                  draggable
+                  onDragStart={event => {
+                    event.preventDefault()
+                    ipcRenderer.invoke('dragOut', `${directory}/${path}`)
                   }}
                 >
                   {path}
@@ -281,7 +427,7 @@ const Content = ({ p2p, contentKey: key, version, renderRow }) => {
         <Actions>
           {canRegisterContent ? (
             <Button
-              color={green}
+              color={colors.green500}
               isLoading={isUpdatingRegistration}
               disabled={!content.rawJSON.main}
               onClick={async () => {
@@ -310,7 +456,7 @@ const Content = ({ p2p, contentKey: key, version, renderRow }) => {
             </Button>
           ) : canDeregisterContent ? (
             <Button
-              color={yellow}
+              color={colors.yellow500}
               isLoading={isUpdatingRegistration}
               onClick={async () => {
                 setIsUpdatingRegistration(true)
@@ -333,7 +479,7 @@ const Content = ({ p2p, contentKey: key, version, renderRow }) => {
           ) : null}
           {content.metadata.isWritable && (
             <Button
-              color={red}
+              color={colors.red500}
               isLoading={isDeleting}
               onClick={async () => {
                 const { response } = await remote.dialog.showMessageBox(
@@ -348,7 +494,8 @@ const Content = ({ p2p, contentKey: key, version, renderRow }) => {
                 if (response === 1) return
 
                 setIsDeleting(true)
-                const deleteFiles = true
+                // iff deleteFiles = true local files get deleted
+                const deleteFiles = false
                 await p2p.delete(content.rawJSON.url, deleteFiles)
                 history.push('/')
               }}

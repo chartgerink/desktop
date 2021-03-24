@@ -1,45 +1,51 @@
 import React, { useState, useEffect, Fragment } from 'react'
 import styled, { css } from 'styled-components'
-import { purple, black, white, gray } from '../../lib/colors'
+import { colors } from '@libscie/design-library'
 import subtypes from '@hypergraph-xyz/wikidata-identifiers'
 import { useHistory, useLocation } from 'react-router-dom'
-import Plus from './plus.svg'
+import ChildContentButton from './child-content-button.svg'
 import { encode } from 'dat-encoding'
 import newlinesToBr from '../../lib/newlines-to-br'
 import OneParent from './1-parent.svg'
+import TwoParent from './2-parent.svg'
+import ThreeParent from './3-parent.svg'
+import MoreParent from './more-parent.svg'
 import Tabbable from '../accessibility/tabbable'
 import Author from '../author/author'
 import ContentBlockSpinner from './content-block-spinner.svg'
 
-const AddContentWithParent = styled(Plus)`
+const AddContentWithParent = styled(ChildContentButton)`
   position: absolute;
+  width: 56px;
+  height: 56px;
   right: 0;
   top: 0;
   display: none;
-  border-left: 2px solid ${purple};
-  padding: 123px 41px;
+  border-left: 2px solid ${colors.purple500};
+  border-bottom: 2px solid ${colors.purple500};
+  padding: 119px 41px;
   z-index: 1;
-  background-color: ${black};
+  background-color: ${colors.mono900};
 
   :hover {
-    background-color: ${purple};
+    background-color: ${colors.purple500};
   }
 
   :active {
     background-color: inherit;
     path {
-      fill: ${white};
+      fill: ${colors.white};
     }
   }
 `
 const Container = styled.div`
   padding: ${props => props.pad || 0}rem;
-  border-bottom: 2px solid ${purple};
+  border-bottom: 2px solid ${colors.purple500};
   position: relative;
   height: ${props =>
     props.isParent ? 8.5 : props.isUnavailable ? 8 : 18.5}rem;
   box-sizing: border-box;
-  ${props => props.isUnavailable && `color: ${gray};`}
+  ${props => props.isUnavailable && `color: ${colors.mono500};`}
   flex-shrink: 0;
 
   ${props =>
@@ -62,7 +68,7 @@ const Hover = styled.div`
       position: absolute;
       left: 0;
       bottom: 0;
-      background: linear-gradient(transparent, ${purple});
+      background: linear-gradient(transparent, ${colors.purple500});
       z-index: 1;
     }
   }
@@ -91,7 +97,7 @@ const Title = styled.div`
   margin-bottom: 1rem;
 `
 const Authors = styled.div`
-  color: ${gray};
+  color: ${colors.mono500};
 `
 const Description = styled.div`
   overflow: hidden;
@@ -105,33 +111,22 @@ const Description = styled.div`
       position: absolute;
       left: 0;
       bottom: 0;
-      background: linear-gradient(transparent, ${black});
+      background: linear-gradient(transparent, ${colors.mono900});
     }
   }
-`
-const ToggleParent = styled.p`
-  position: absolute;
-  bottom: 0;
-  margin: 0;
-  padding-bottom: 2px;
-  -webkit-app-region: no-drag;
-  z-index: 1;
-
-  :hover {
-    padding-bottom: 0;
-    border-bottom: 2px solid ${purple};
-  }
-`
-const ToggleParentArrow = styled.span`
-  width: 16px;
-  display: inline-block;
 `
 
 const Row = ({ p2p, content, pad, to, isParent, isRegistered }) => {
   const history = useHistory()
   const location = useLocation()
-  const [showParent, setShowParent] = useState(false)
+  const [parentCount, setParentCount] = useState(0)
   const [parent, setParent] = useState()
+
+  useEffect(() => {
+    if (content) {
+      setParentCount(content.rawJSON.parents.length)
+    }
+  })
 
   if (content && content.rawJSON.parents[0]) {
     useEffect(() => {
@@ -146,7 +141,7 @@ const Row = ({ p2p, content, pad, to, isParent, isRegistered }) => {
     <>
       <Tabbable
         component={Container}
-        onClick={e => {
+        onDoubleClick={e => {
           if (!e || e.target.tagName !== 'A') history.push(to)
         }}
         isParent={isParent}
@@ -156,9 +151,24 @@ const Row = ({ p2p, content, pad, to, isParent, isRegistered }) => {
             <Attribute>
               {subtypes[content.rawJSON.subtype] || 'Unknown'}
             </Attribute>
-            {parent && (
+            {parent && parentCount === 1 && (
               <Attribute title={`Follows from "${parent.rawJSON.title}"`}>
                 <OneParent />
+              </Attribute>
+            )}
+            {parent && parentCount === 2 && (
+              <Attribute title={`Follows from "${parent.rawJSON.title}"`}>
+                <TwoParent />
+              </Attribute>
+            )}
+            {parent && parentCount === 3 && (
+              <Attribute title={`Follows from "${parent.rawJSON.title}"`}>
+                <ThreeParent />
+              </Attribute>
+            )}
+            {parent && parentCount > 3 && (
+              <Attribute title={`Follows from "${parent.rawJSON.title}"`}>
+                <MoreParent />
               </Attribute>
             )}
           </Attributes>
@@ -187,17 +197,6 @@ const Row = ({ p2p, content, pad, to, isParent, isRegistered }) => {
                 {newlinesToBr(content.rawJSON.description)}
               </Description>
             )}
-            {!isParent && content.rawJSON.parents[0] && (
-              <ToggleParent
-                onClick={e => {
-                  e.stopPropagation()
-                  setShowParent(!showParent)
-                }}
-              >
-                <ToggleParentArrow>{showParent ? '▾' : '▸'}</ToggleParentArrow>
-                Follows from
-              </ToggleParent>
-            )}
           </Content>
         </Hover>
         {isRegistered && (
@@ -213,7 +212,7 @@ const Row = ({ p2p, content, pad, to, isParent, isRegistered }) => {
           />
         )}
       </Tabbable>
-      {(showParent || isParent) && parent && (
+      {isParent && parent && (
         <Row
           p2p={p2p}
           content={parent}

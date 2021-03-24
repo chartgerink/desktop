@@ -1,7 +1,7 @@
 import React from 'react'
 import Reactour from 'reactour'
 import styled from 'styled-components'
-import { purple } from '../../lib/colors'
+import { colors } from '@libscie/design-library'
 
 const StyledTour = styled(Reactour)`
   color: #ffffff;
@@ -40,7 +40,7 @@ const Tour = ({ onClose, ...props }) => {
   return (
     <StyledTour
       {...props}
-      accentColor={purple}
+      accentColor={colors.purple500}
       closeWithMask={false}
       maskSpace={2}
       onRequestClose={onClose}
@@ -57,38 +57,6 @@ const Tour = ({ onClose, ...props }) => {
                 We'll get you started with a quick tour of the most important
                 things.
               </p>
-            </div>
-          )
-        },
-        {
-          content: (
-            <div>
-              <p>First things first: Creating a backup.</p>
-              <p>
-                We don't use passwords, but keys 🔑. Just like your house keys,
-                you need to store them safely and not lose them.
-              </p>
-            </div>
-          )
-        },
-        {
-          content: (
-            <div>
-              <p>
-                Create a backup by opening <i>Database → Back up database</i> in
-                the menu bar (at the top).
-              </p>
-              <p>
-                We cannot help you recover these, so store them safely! Maybe
-                your Dropbox, USB stick, or somewhere else 🤔
-              </p>
-            </div>
-          )
-        },
-        {
-          content: (
-            <div>
-              <p>Now we'll see where you can find what information.</p>
             </div>
           )
         },
