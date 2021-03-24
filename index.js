@@ -230,7 +230,10 @@ const updateMenu = () => {
           },
           {
             label: 'Terms',
-            click: () => shell.openExternal('https://www.notion.so/libscie/Terms-Hypergraph-2794527482b54eddb5b7c991e8152999')
+            click: () =>
+              shell.openExternal(
+                'https://www.notion.so/libscie/Terms-Hypergraph-2794527482b54eddb5b7c991e8152999'
+              )
           }
         ]
       }
@@ -299,55 +302,6 @@ const main = async () => {
   await app.whenReady()
   mainWindow = await createMainWindow()
   app.setAsDefaultProtocolClient('hypergraph')
-<<<<<<< HEAD
-
-  const options = {
-    type: 'question',
-    buttons: ['Install'],
-    defaultId: 0,
-    title: 'Update Hypergraph',
-    message: 'null',
-    detail: null
-  }
-
-  dialog.showMessageBox(null, options, response => {
-    console.log(response)
-  })
-
-  if (app.isPackaged) autoUpdater.checkForUpdates()
-
-  autoUpdater.addListener('checking-for-update', info => {
-    console.log('Checking for update...')
-    console.log(info)
-  })
-
-  autoUpdater.addListener('update-available', info => {
-    console.log('Update available...')
-    console.log(info)
-  })
-
-  autoUpdater.addListener('download-progress', info => {
-    console.log('Download progress...')
-    console.log(info)
-  })
-
-  autoUpdater.addListener('update-downloaded', info => {
-    console.log('Update downloaded...')
-    console.log(info)
-    // const options = {
-    //   type: 'question',
-    //   buttons: ['Install'],
-    //   defaultId: 0,
-    //   title: 'Update Hypergraph',
-    //   message: 'New update',
-    //   detail: 'Testing changelog'
-    // }
-
-    // dialog.showMessageBox(null, options, response => {
-    //   if (response === 0) autoUpdater.quitAndInstall()
-    // })
-  })
-=======
   if (app.isPackaged) autoUpdater.checkForUpdatesAndNotify()
   if (!store.get('keyBackedUp') && store.get('showWelcome') === false) {
     const backUpKey = new Notification({
@@ -371,7 +325,6 @@ const main = async () => {
       })
     })
   }
->>>>>>> 807d505ae49ff968ccb2ba8b05a5528a76759d4d
 }
 
 main()
