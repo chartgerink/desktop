@@ -23,7 +23,6 @@ const log = require('electron-log')
 const express = require('express')
 const { version: p2pcommons } = require('@p2pcommons/sdk-js/package.json')
 
-
 debug({ isEnabled: true, showDevTools: false })
 app.allowRendererProcessReuse = false
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = true
@@ -208,7 +207,7 @@ const updateMenu = () => {
             click: () => {
               dialog.showMessageBox({
                 message: `Running version ${app.getVersion()} of ${app.getName()}\nPowered by version ${p2pcommons} of the p2pcommons`,
-                type: "info"
+                type: 'info'
               })
             }
           },
@@ -241,7 +240,10 @@ const updateMenu = () => {
           },
           {
             label: 'Terms',
-            click: () => shell.openExternal('https://www.notion.so/libscie/Terms-Hypergraph-2794527482b54eddb5b7c991e8152999')
+            click: () =>
+              shell.openExternal(
+                'https://www.notion.so/libscie/Terms-Hypergraph-2794527482b54eddb5b7c991e8152999'
+              )
           }
         ]
       }
