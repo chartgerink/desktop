@@ -79,16 +79,16 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: mac
-          path: dist/${{ steps.productName.outputs.productName }}.dmg
+          path: dist/hypergraph-desktop.dmg
       - name: archive linux appimage
         if: startsWith(matrix.os, 'ubuntu')
         uses: actions/upload-artifact@v1
         with:
           name: linux
-          path: dist/${{ steps.productName.outputs.productName }}.AppImage
+          path: dist/hypergraph-desktop.AppImage
       - name: archive windows setup
         if: startsWith(matrix.os, 'windows')
         uses: actions/upload-artifact@v1
         with:
           name: windows
-          path: dist/${{ steps.productName.outputs.productName }}.exe
+          path: dist/hypergraph-desktop.exe
