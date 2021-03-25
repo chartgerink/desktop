@@ -230,7 +230,10 @@ const updateMenu = () => {
           },
           {
             label: 'Terms',
-            click: () => shell.openExternal('https://www.notion.so/libscie/Terms-Hypergraph-2794527482b54eddb5b7c991e8152999')
+            click: () =>
+              shell.openExternal(
+                'https://www.notion.so/libscie/Terms-Hypergraph-2794527482b54eddb5b7c991e8152999'
+              )
           }
         ]
       }
