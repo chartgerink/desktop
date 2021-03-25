@@ -206,7 +206,7 @@ const updateMenu = () => {
             label: 'About',
             click: () => {
               dialog.showMessageBox({
-                message: `Running version ${app.getVersion()} of ${app.getName()}\nPowered by version ${p2pcommons} of the p2pcommons`,
+                message: `This just updated.\nRunning version ${app.getVersion()} of ${app.getName()}\nPowered by version ${p2pcommons} of the p2pcommons`,
                 type: 'info'
               })
             }
