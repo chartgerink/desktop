@@ -5,7 +5,7 @@
   "version": "0.10.0",
   "description": "Hypergraph Desktop app",
   "license": "MIT",
-  "repository": "hypergraph-xyz/desktop",
+  "repository": "chartgerink/desktop",
   "scripts": {
     "build": "webpack -p",
     "dist": "electron-builder",
