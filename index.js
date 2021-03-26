@@ -91,8 +91,8 @@ if (
   !store.get('showWelcome') === undefined
 ) {
   // Set both to true if you want just terms to show
-  store.set('showWelcome', false)
-  store.set('showTerms', false)
+  store.set('showWelcome', true)
+  store.set('showTerms', true)
 }
 
 const withRestart = async cb => {
