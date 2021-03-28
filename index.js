@@ -85,10 +85,7 @@ ipcMain.handle('copyPrivateKey', async (_, value) => {
 })
 
 if (
-  app.getVersion() !== store.get('lastInstalledAppVersion') &&
-  // Only undefined if welcome screens haven't been completed once
-  // Proxy for whether it is the first time launching the application
-  !store.get('showWelcome') === undefined
+  app.getVersion() !== store.get('lastInstalledAppVersion')
 ) {
   // Set both to true if you want just terms to show
   store.set('showWelcome', true)
