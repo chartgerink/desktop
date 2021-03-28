@@ -84,9 +84,7 @@ ipcMain.handle('copyPrivateKey', async (_, value) => {
   })
 })
 
-if (
-  app.getVersion() !== store.get('lastInstalledAppVersion')
-) {
+if (app.getVersion() !== store.get('lastInstalledAppVersion')) {
   // Set both to true if you want just terms to show
   store.set('showWelcome', true)
   store.set('showTerms', true)
